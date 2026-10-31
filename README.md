@@ -14,9 +14,11 @@
   </p>
 </div>
 
+*Note on the preview image: its "1.6x – 15x" range does not match this repo's benchmark. The benchmark below measured about 3.3× on one run; your result depends on network and machine.*
+
 ---
 
-A production-style Python scraping toolkit built for real-world data extraction jobs. All demos target **[toscrape.com](https://toscrape.com)** — a public sandbox created specifically for testing scrapers — so everything in this repository is 100% legal, reproducible, and safe to run.
+A Python scraping toolkit with small, runnable examples of common scraping tasks. All demos target **[toscrape.com](https://toscrape.com)** — a public sandbox created specifically for testing scrapers — so everything in this repository is 100% legal, reproducible, and safe to run.
 
 ## ✨ What This Repository Demonstrates
 
@@ -30,14 +32,14 @@ A production-style Python scraping toolkit built for real-world data extraction 
 
 ## 📊 Real Benchmark: Playwright Infinite Scroll vs. Hidden JSON API
 
-Measured on `https://quotes.toscrape.com/scroll` (100 quotes across 10 pages):
+Measured on `https://quotes.toscrape.com/scroll` (100 quotes across 10 pages), single run. Times come from `compare-scroll` (`src/showcase/quotes_compare.py`) and will vary with your network. The RAM figures are rough estimates printed by the script, not measurements.
 
 | Metric | Playwright Headless Browser (`/scroll`) | Direct Hidden JSON API (`/api/quotes`) | Improvement |
 | :--- | :--- | :--- | :--- |
 | **Total Time (100 items)** | `~4.80 s` | `~1.45 s` | **3.3× faster** |
 | **Throughput** | `~20.8 items/s` | `~68.9 items/s` | **+231% throughput** |
 | **Browser RAM Overhead** | `~180 MB` (Chromium process) | `< 15 MB` (pure `httpx`) | **>90% less memory** |
-| **Fragility** | Breaks on CSS/DOM layout changes | Clean structured JSON (`has_next`, `quotes[]`) | **Production-grade stability** |
+| **Fragility** | Breaks on CSS/DOM layout changes | Clean structured JSON (`has_next`, `quotes[]`) | **Less fragile** |
 
 > **Why this matters for clients:** Before writing a slow, resource-heavy browser scraper, I always inspect the site's network traffic for a private/hidden JSON API. When one exists, your scraper runs faster, costs less to host, and rarely breaks.
 
