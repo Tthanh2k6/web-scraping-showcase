@@ -103,3 +103,31 @@ def test_summarize_json() -> None:
     keys, count = _summarize_json({"has_next": True, "page": 1, "quotes": [{}, {}, {}]})
     assert "quotes" in keys
     assert count == 3
+
+
+def test_parse_retry_after_seconds_date_and_garbage():
+    from datetime import datetime, timedelta, timezone
+    from email.utils import format_datetime
+
+    from showcase.fetch import MAX_RETRY_AFTER, parse_retry_after
+
+    assert parse_retry_after("120") == 120.0
+    assert parse_retry_after("999999") == MAX_RETRY_AFTER
+    future = format_datetime(datetime.now(timezone.utc) + timedelta(seconds=90), usegmt=True)
+    assert 80 <= parse_retry_after(future) <= 91
+    assert parse_retry_after("soon") is None
+    assert parse_retry_after("") is None
+
+
+def test_sqlite_upsert_keeps_columns_it_does_not_write(tmp_path):
+    import sqlite3
+
+    db_path = tmp_path / "items.sqlite"
+    write_sqlite([{"upc": "a1", "price": 10.0}], db_path, table="items", primary_key="upc")
+    with sqlite3.connect(db_path) as conn:
+        conn.execute('ALTER TABLE items ADD COLUMN first_seen TEXT')
+        conn.execute("UPDATE items SET first_seen = '2026-11-01'")
+    write_sqlite([{"upc": "a1", "price": 12.5}], db_path, table="items", primary_key="upc")
+    with sqlite3.connect(db_path) as conn:
+        row = conn.execute("SELECT price, first_seen FROM items WHERE upc = 'a1'").fetchone()
+    assert row == (12.5, "2026-11-01")

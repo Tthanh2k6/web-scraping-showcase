@@ -4,6 +4,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import random
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 import httpx
 
@@ -17,6 +19,23 @@ DEFAULT_HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
 }
 RETRY_STATUSES = {429, 500, 502, 503, 504}
+MAX_RETRY_AFTER = 600.0
+
+
+def parse_retry_after(value: str) -> float | None:
+    """Retry-After is either delay-seconds or an HTTP date; return seconds to wait (capped)."""
+    value = value.strip()
+    if not value:
+        return None
+    if value.isdigit():
+        return min(float(value), MAX_RETRY_AFTER)
+    try:
+        when = parsedate_to_datetime(value)
+    except (TypeError, ValueError):
+        return None
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    return min(max(0.0, (when - datetime.now(timezone.utc)).total_seconds()), MAX_RETRY_AFTER)
 
 
 class Fetcher:
@@ -58,8 +77,7 @@ class Fetcher:
                     error = httpx.HTTPStatusError(
                         f"HTTP {resp.status_code}", request=resp.request, response=resp
                     )
-                    header = resp.headers.get("Retry-After", "")
-                    retry_after = float(header) if header.isdigit() else None
+                    retry_after = parse_retry_after(resp.headers.get("Retry-After", ""))
 
             if attempt == self._retries:
                 raise error

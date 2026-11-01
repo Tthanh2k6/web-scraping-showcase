@@ -80,7 +80,13 @@ def write_sqlite(
     placeholders = ", ".join(["?"] * len(cols))
     col_names = ", ".join(f'"{c}"' for c in cols)
     sql_create = f'CREATE TABLE IF NOT EXISTS "{table}" ({", ".join(col_defs)})'
-    sql_upsert = f'INSERT OR REPLACE INTO "{table}" ({col_names}) VALUES ({placeholders})'
+    updates = ", ".join(f'"{c}" = excluded."{c}"' for c in cols if c != primary_key)
+    # Real upsert: existing rows are updated in place (INSERT OR REPLACE would delete and
+    # re-insert them, resetting columns this run doesn't write).
+    sql_upsert = (
+        f'INSERT INTO "{table}" ({col_names}) VALUES ({placeholders}) '
+        f'ON CONFLICT("{primary_key}") DO UPDATE SET {updates}'
+    )
 
     with sqlite3.connect(out) as conn:
         conn.execute(sql_create)

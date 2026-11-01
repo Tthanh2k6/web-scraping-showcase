@@ -10,7 +10,7 @@
     <img src="https://img.shields.io/badge/Async_HTTP-httpx_%2B_asyncio-00F0FF?style=flat-square" alt="httpx + asyncio" />
     <img src="https://img.shields.io/badge/Headless_Browser-Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white" alt="Playwright" />
     <img src="https://img.shields.io/badge/Storage-CSV_%7C_JSON_%7C_SQLite-10B981?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite" />
-    <img src="https://img.shields.io/badge/Tests-4_Passed_(Pytest)-FF6B00?style=flat-square&logo=pytest&logoColor=white" alt="Pytest" />
+    <img src="https://img.shields.io/badge/Tests-6_Passed_(Pytest)-FF6B00?style=flat-square&logo=pytest&logoColor=white" alt="Pytest" />
   </p>
 </div>
 

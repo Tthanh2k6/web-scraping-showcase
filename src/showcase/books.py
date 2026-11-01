@@ -80,7 +80,9 @@ def parse_book_detail(html: str, url: str) -> Book:
     )
 
 
-async def scrape_books(max_pages: int = 50, concurrency: int = 12) -> tuple[list[Book], float, int]:
+async def scrape_books(
+    max_pages: int = 50, concurrency: int = 12
+) -> tuple[list[Book], float, int, list[tuple[str, str]]]:
     t0 = time.perf_counter()
     async with Fetcher(concurrency=concurrency) as fetcher:
         # books.toscrape.com has 50 pages: page-1.html .. page-50.html
@@ -102,13 +104,19 @@ async def scrape_books(max_pages: int = 50, concurrency: int = 12) -> tuple[list
                 urls, _ = parse_catalog_page(resp.text, u)
                 book_urls.extend(urls)
 
-        async def _fetch_book(u: str) -> Book:
-            r = await fetcher.get(u)
-            return parse_book_detail(r.text, u)
+        async def _fetch_book(u: str) -> Book | Exception:
+            # One broken page must not throw away the rest of the run.
+            try:
+                r = await fetcher.get(u)
+                return parse_book_detail(r.text, u)
+            except Exception as exc:  # noqa: BLE001
+                return exc
 
-        books = await asyncio.gather(*(_fetch_book(u) for u in book_urls))
+        results = await asyncio.gather(*(_fetch_book(u) for u in book_urls))
+        books = [r for r in results if isinstance(r, Book)]
+        failed = [(u, repr(r)) for u, r in zip(book_urls, results) if isinstance(r, Exception)]
         elapsed = time.perf_counter() - t0
-        return list(books), elapsed, fetcher.requests
+        return books, elapsed, fetcher.requests, failed
 
 
 def main() -> None:
@@ -118,7 +126,7 @@ def main() -> None:
     parser.add_argument("--out-dir", type=Path, default=Path("output"), help="Output directory")
     args = parser.parse_args()
 
-    books, elapsed, reqs = asyncio.run(
+    books, elapsed, reqs, failed = asyncio.run(
         scrape_books(max_pages=args.pages, concurrency=args.concurrency)
     )
     out_dir: Path = args.out_dir
@@ -131,6 +139,11 @@ def main() -> None:
         f"({reqs} HTTP requests in {elapsed:.2f}s -> {len(books)/elapsed:.1f} items/s)."
     )
     print(f"Saved: {out_dir / 'books.csv'}, {out_dir / 'books.json'}, {out_dir / 'books.sqlite'}")
+    if failed:
+        write_json([{"url": u, "error": e} for u, e in failed], out_dir / "failed.json")
+        print(f"{len(failed)} page(s) failed, listed in {out_dir / 'failed.json'}")
+        if len(failed) > 0.1 * (len(books) + len(failed)):
+            raise SystemExit(1)
 
 
 if __name__ == "__main__":
