@@ -18,7 +18,7 @@
 
 ---
 
-A Python scraping toolkit with small, runnable examples of common scraping tasks. All demos target **[toscrape.com](https://toscrape.com)** — a public sandbox created specifically for testing scrapers — so everything in this repository is 100% legal, reproducible, and safe to run.
+A Python scraping toolkit with small, runnable examples of common scraping tasks. All demos target **[toscrape.com](https://toscrape.com)**, a public sandbox made for practising scraping, so the examples can be run without hitting a real business's site.
 
 ## ✨ What This Repository Demonstrates
 
@@ -38,7 +38,7 @@ Measured on `https://quotes.toscrape.com/scroll` (100 quotes across 10 pages), s
 | :--- | :--- | :--- | :--- |
 | **Total Time (100 items)** | `~4.80 s` | `~1.45 s` | **3.3× faster** |
 | **Throughput** | `~20.8 items/s` | `~68.9 items/s` | **+231% throughput** |
-| **Browser RAM Overhead** | `~180 MB` (Chromium process) | `< 15 MB` (pure `httpx`) | **>90% less memory** |
+| **Browser RAM Overhead** | `~180 MB` (Chromium process, estimate) | `< 15 MB` (pure `httpx`, estimate) | not measured |
 | **Fragility** | Breaks on CSS/DOM layout changes | Clean structured JSON (`has_next`, `quotes[]`) | **Less fragile** |
 
 > **Why this matters for clients:** Before writing a slow, resource-heavy browser scraper, I always inspect the site's network traffic for a private/hidden JSON API. When one exists, your scraper runs faster, costs less to host, and rarely breaks.
@@ -66,10 +66,10 @@ playwright install chromium
 
 ```bash
 # Scrape first 3 pages (60 books) with concurrency=8
-scrape-books --pages 3 --concurrency 8 --output-dir output
+scrape-books --pages 3 --concurrency 8 --out-dir output
 
 # Or scrape the entire 1,000-book catalog (50 pages)
-scrape-books --pages 50 --concurrency 10 --output-dir output
+scrape-books --pages 50 --concurrency 10 --out-dir output
 ```
 
 Outputs generated in `output/` (sample outputs included in [`samples/`](./samples)):
@@ -80,23 +80,21 @@ Outputs generated in `output/` (sample outputs included in [`samples/`](./sample
 ### 2. Benchmark Infinite Scroll vs. Hidden JSON API
 
 ```bash
-compare-scroll --max-pages 10 --output-dir output
+# Scrapes all 10 pages both ways and writes quotes.csv / quotes.json
+compare-scroll --out-dir output
 ```
 
 ### 3. Sniff Hidden JSON APIs on Any JavaScript Page
 
 ```bash
-sniff-api https://quotes.toscrape.com/scroll --scrolls 4
+sniff-api https://quotes.toscrape.com/scroll --scrolls 4 --out output/endpoints.json
 ```
 
-Example output:
+Output format (illustrative; one entry per captured JSON response, the count depends on `--scrolls`):
 ```text
-Discovered 1 JSON API endpoint(s)
-┌────────┬──────────────────────────────────────────────┬────────┬────────────┬───────┬──────────────────────────────┐
-│ Method │ Endpoint URL                                 │ Status │ Size (B)   │ Items │ Top-Level Keys / Preview     │
-├────────┼──────────────────────────────────────────────┼────────┼────────────┼───────┼──────────────────────────────┤
-│ GET    │ https://quotes.toscrape.com/api/quotes?page=1│ 200    │ 2,942      │ 10    │ has_next, page, quotes, ...  │
-└────────┴──────────────────────────────────────────────┴────────┴────────────┴───────┴──────────────────────────────┘
+Discovered N JSON endpoint(s) on https://quotes.toscrape.com/scroll:
+  [GET 200] https://quotes.toscrape.com/api/quotes?page=1
+      keys=['has_next', 'page', 'quotes', ...] | list_items=10
 ```
 
 ---
@@ -118,16 +116,15 @@ web-scraping-showcase/
 │   ├── books.py           # Async HTML + detail parser for books.toscrape.com
 │   ├── quotes_compare.py  # Hidden JSON API vs. Playwright infinite-scroll benchmark
 │   ├── sniffer.py         # Generic XHR/Fetch JSON API discovery tool
-│   ├── export.py          # CSV, JSON, and idempotent SQLite upsert exporters
-│   └── cli.py             # CLI entry points (scrape-books, compare-scroll, sniff-api)
+│   └── export.py          # CSV, JSON, and idempotent SQLite upsert exporters
 ├── samples/               # Sample CSV & JSON outputs (books.csv, books.json, quotes.csv, quotes.json)
 ├── tests/                 # Offline unit tests for HTML parsers, API parsers, and exporters
-└── pyproject.toml
+└── pyproject.toml         # console scripts: scrape-books, compare-scroll, sniff-api (each module's main())
 ```
 
 ## 🔒 Data Ethics & Compliance
 
-- Respects rate limits with bounded concurrency (`asyncio.Semaphore`), configurable request delays, and `Retry-After` headers.
+- Limits load with bounded concurrency (`asyncio.Semaphore`, `--concurrency`), backs off on 429/5xx and honours `Retry-After` headers.
 - Collects only publicly available data; never harvests personal/private user data.
 
 ---

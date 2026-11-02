@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "web-scraping-showcase"
 version = "0.1.0"
-description = "Production-style web scraping & hidden API extraction showcase (async httpx, Playwright, SQLite/CSV/JSON export)."
+description = "Web scraping & hidden API extraction showcase (async httpx, Playwright, SQLite/CSV/JSON export)."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
