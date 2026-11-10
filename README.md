@@ -6,7 +6,7 @@
   <br />
 
   <p align="center">
-    <img src="https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.11+" />
+    <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+" />
     <img src="https://img.shields.io/badge/Async_HTTP-httpx_%2B_asyncio-00F0FF?style=flat-square" alt="httpx + asyncio" />
     <img src="https://img.shields.io/badge/Headless_Browser-Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white" alt="Playwright" />
     <img src="https://img.shields.io/badge/Storage-CSV_%7C_JSON_%7C_SQLite-10B981?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite" />
@@ -32,16 +32,16 @@ A Python scraping toolkit with small, runnable examples of common scraping tasks
 
 ## 📊 Real Benchmark: Playwright Infinite Scroll vs. Hidden JSON API
 
-Measured on `https://quotes.toscrape.com/scroll` (100 quotes across 10 pages), single run. Times come from `compare-scroll` (`src/showcase/quotes_compare.py`) and will vary with your network. The RAM figures are rough estimates printed by the script, not measurements.
+Two runs of `compare-scroll` on 11 Nov 2026 from a laptop in Ho Chi Minh City, `https://quotes.toscrape.com/scroll` (100 quotes, 10 pages):
 
-| Metric | Playwright Headless Browser (`/scroll`) | Direct Hidden JSON API (`/api/quotes`) | Improvement |
-| :--- | :--- | :--- | :--- |
-| **Total Time (100 items)** | `~4.80 s` | `~1.45 s` | **3.3× faster** |
-| **Throughput** | `~20.8 items/s` | `~68.9 items/s` | **+231% throughput** |
-| **Browser RAM Overhead** | `~180 MB` (Chromium process, estimate) | `< 15 MB` (pure `httpx`, estimate) | not measured |
-| **Fragility** | Breaks on CSS/DOM layout changes | Clean structured JSON (`has_next`, `quotes[]`) | **Less fragile** |
+| Run | Playwright headless Chromium (`/scroll`) | Hidden JSON API with `httpx` (`/api/quotes`, 10 requests) | Speedup |
+| :--- | :---: | :---: | :---: |
+| 1 (cold browser start) | 31.27 s | 4.15 s | 7.5× |
+| 2 | 7.25 s | 4.07 s | 1.8× |
 
-> **Why this matters for clients:** Before writing a slow, resource-heavy browser scraper, I always inspect the site's network traffic for a private/hidden JSON API. When one exists, your scraper runs faster, costs less to host, and rarely breaks.
+Timings depend on network latency to the sandbox and on browser start-up, so run it yourself rather than trusting these numbers. Memory was not measured. The bigger practical gain is maintenance: the JSON API returns structured fields (`has_next`, `quotes[]`), while the browser path depends on page layout.
+
+> **Why this matters for clients:** Before writing a slow, resource-heavy browser scraper, I always inspect the site's network traffic for a private/hidden JSON API. When one exists, the scraper is usually faster, cheaper to host and less likely to break when the page layout changes.
 
 ---
 
@@ -112,7 +112,7 @@ pytest -v
 ```text
 web-scraping-showcase/
 ├── src/showcase/
-│   ├── fetch.py           # PoliteHttpClient: concurrency semaphore, retries, exponential backoff
+│   ├── fetch.py           # Fetcher: concurrency semaphore, retries, exponential backoff, Retry-After
 │   ├── books.py           # Async HTML + detail parser for books.toscrape.com
 │   ├── quotes_compare.py  # Hidden JSON API vs. Playwright infinite-scroll benchmark
 │   ├── sniffer.py         # Generic XHR/Fetch JSON API discovery tool

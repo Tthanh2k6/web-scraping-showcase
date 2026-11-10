@@ -88,10 +88,10 @@ async def run_comparison(out_dir: Path) -> None:
     write_csv(api_quotes, out_dir / "quotes.csv")
 
     print("\n### Benchmark: Infinite Scroll (Playwright) vs. Hidden JSON API\n")
-    print("| Method | Items Extracted | Time (s) | Speedup | Browser RAM Overhead |")
-    print("| :--- | :---: | :---: | :---: | :--- |")
-    print(f"| Playwright Headless Chromium (Scroll) | {len(pw_quotes)} | {pw_sec:.2f}s | 1.0x | ~180 MB |")
-    print(f"| Direct Hidden JSON API (`httpx`) | {len(api_quotes)} | {api_sec:.2f}s | **{speedup:.1f}x faster** | < 15 MB ({api_reqs} requests) |")
+    print("| Method | Items Extracted | Time (s) | Speedup | Requests |")
+    print("| :--- | :---: | :---: | :---: | :---: |")
+    print(f"| Playwright Headless Chromium (Scroll) | {len(pw_quotes)} | {pw_sec:.2f}s | 1.0x | browser |")
+    print(f"| Direct Hidden JSON API (`httpx`) | {len(api_quotes)} | {api_sec:.2f}s | **{speedup:.1f}x faster** | {api_reqs} |")
 
 
 def main() -> None:
