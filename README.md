@@ -14,7 +14,7 @@
   </p>
 </div>
 
-*Note on the preview image: its "1.6x – 15x" range does not match this repo's benchmark. The benchmark below measured about 3.3× on one run; your result depends on network and machine.*
+*Note on the preview image: its "1.6x – 15x" range does not match this repo's benchmark. The two runs below measured 7.5× (cold browser start) and 1.8×; your result depends on network and machine.*
 
 ---
 
