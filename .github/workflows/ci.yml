@@ -1,0 +1,26 @@
+name: CI & Scheduled Scraper Healthcheck
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1" # Weekly Monday 06:00 UTC smoke check
+
+jobs:
+  test-and-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+      - name: Run unit tests
+        run: pytest -q
+      - name: Smoke test 2 pages of books.toscrape.com
+        run: scrape-books --pages 2 --out-dir output
+

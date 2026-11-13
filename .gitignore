@@ -8,6 +8,5 @@ build/
 venv/
 output/
 *.sqlite
-.github/
 CODEBASE.md
 agent.md
