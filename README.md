@@ -1,132 +1,78 @@
-# Python Web Scraping & Hidden JSON API Extraction Showcase
+# web-scraping-showcase
 
-<div align="center">
-  <img src="https://raw.githubusercontent.com/Tthanh2k6/Portfolio/main/public/IMG/project-scraping.png" alt="Python Web Scraping & Hidden API Extraction Toolkit" width="100%" />
+[![CI](https://github.com/Tthanh2k6/web-scraping-showcase/actions/workflows/ci.yml/badge.svg)](https://github.com/Tthanh2k6/web-scraping-showcase/actions/workflows/ci.yml)
 
-  <br />
+Three small Python scrapers that show one habit: before writing a browser scraper, look for the JSON API the page already calls. Every example runs against [toscrape.com](https://toscrape.com), a public sandbox built for practising scraping.
 
-  <p align="center">
-    <img src="https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python 3.10+" />
-    <img src="https://img.shields.io/badge/Async_HTTP-httpx_%2B_asyncio-00F0FF?style=flat-square" alt="httpx + asyncio" />
-    <img src="https://img.shields.io/badge/Headless_Browser-Playwright-2EAD33?style=flat-square&logo=playwright&logoColor=white" alt="Playwright" />
-    <img src="https://img.shields.io/badge/Storage-CSV_%7C_JSON_%7C_SQLite-10B981?style=flat-square&logo=sqlite&logoColor=white" alt="SQLite" />
-    <img src="https://img.shields.io/badge/Tests-6_Passed_(Pytest)-FF6B00?style=flat-square&logo=pytest&logoColor=white" alt="Pytest" />
-  </p>
-</div>
+| Command | What it does |
+| --- | --- |
+| `sniff-api <url>` | Opens the page in headless Chromium, scrolls it, records every JSON response from `fetch`/XHR and lists the endpoints with their top-level keys. |
+| `compare-scroll` | Collects the same 100 quotes twice, once by scrolling the page in Playwright and once from the JSON API behind it, and times both. |
+| `scrape-books` | Async HTML scraper for books.toscrape.com: bounded concurrency, backoff on 429/5xx with `Retry-After`, output to CSV, JSON and SQLite. |
 
-*Note on the preview image: its "1.6x – 15x" range does not match this repo's benchmark. The two runs below measured 7.5× (cold browser start) and 1.8×; your result depends on network and machine.*
+## What it finds
 
----
+`sniff-api` on the infinite-scroll page, run on 16 Nov 2026:
 
-A Python scraping toolkit with small, runnable examples of common scraping tasks. All demos target **[toscrape.com](https://toscrape.com)**, a public sandbox made for practising scraping, so the examples can be run without hitting a real business's site.
+```
+$ sniff-api https://quotes.toscrape.com/scroll --scrolls 4 --out output/endpoints.json
+Discovered 5 JSON endpoint(s) on https://quotes.toscrape.com/scroll:
+  [GET 200] https://quotes.toscrape.com/api/quotes?page=1
+      keys=['has_next', 'page', 'quotes', 'tag', 'top_ten_tags'] | list_items=10
+  [GET 200] https://quotes.toscrape.com/api/quotes?page=2
+      keys=['has_next', 'page', 'quotes', 'tag', 'top_ten_tags'] | list_items=10
+  ...
+```
 
-## ✨ What This Repository Demonstrates
+Once you know `/api/quotes?page=N` exists, the browser is optional. `compare-scroll` measures the difference:
 
-| Command | Scenario | Key Engineering Highlights |
-| :--- | :--- | :--- |
-| `scrape-books` | **Polite Async HTML Scraping** (`books.toscrape.com`) | Concurrent detail-page fetching (`asyncio.Semaphore`), exponential backoff + `Retry-After` handling, star/price normalization, and simultaneous **CSV + JSON + idempotent SQLite** export. |
-| `compare-scroll` | **Infinite Scroll vs. Hidden JSON API** (`quotes.toscrape.com/scroll`) | Side-by-side benchmark extracting the exact same dataset via **Playwright headless Chromium** (infinite scrolling) vs. the **underlying JSON API** (`/api/quotes?page=N`). |
-| `sniff-api` | **Reusable Hidden-API Sniffer** (Any URL) | Launches headless Chromium, auto-scrolls the page, intercepts `XHR` / `fetch` JSON responses, and prints a ranked table of discovered API endpoints with schema previews. |
+| Run (laptop in Ho Chi Minh City) | Playwright, scroll the page | JSON API with `httpx`, 10 requests | Ratio |
+| --- | ---: | ---: | ---: |
+| 11 Nov 2026, cold browser start | 31.27 s | 4.15 s | 7.5× |
+| 11 Nov 2026, second run | 7.25 s | 4.07 s | 1.8× |
+| 16 Nov 2026 | 6.12 s | 3.52 s | 1.7× |
 
----
+Most of the time on both sides is network latency to the sandbox, so expect different numbers. The larger gain is that the API returns typed fields (`has_next`, `quotes[]`) that do not break when the page layout changes.
 
-## 📊 Real Benchmark: Playwright Infinite Scroll vs. Hidden JSON API
-
-Two runs of `compare-scroll` on 11 Nov 2026 from a laptop in Ho Chi Minh City, `https://quotes.toscrape.com/scroll` (100 quotes, 10 pages):
-
-| Run | Playwright headless Chromium (`/scroll`) | Hidden JSON API with `httpx` (`/api/quotes`, 10 requests) | Speedup |
-| :--- | :---: | :---: | :---: |
-| 1 (cold browser start) | 31.27 s | 4.15 s | 7.5× |
-| 2 | 7.25 s | 4.07 s | 1.8× |
-
-Timings depend on network latency to the sandbox and on browser start-up, so run it yourself rather than trusting these numbers. Memory was not measured. The bigger practical gain is maintenance: the JSON API returns structured fields (`has_next`, `quotes[]`), while the browser path depends on page layout.
-
-> **Why this matters for clients:** Before writing a slow, resource-heavy browser scraper, I always inspect the site's network traffic for a private/hidden JSON API. When one exists, the scraper is usually faster, cheaper to host and less likely to break when the page layout changes.
-
----
-
-## 🚀 Quickstart
+## Run it
 
 ```bash
-# 1. Clone and install in a virtual environment
 git clone https://github.com/Tthanh2k6/web-scraping-showcase.git
 cd web-scraping-showcase
 python -m venv .venv
-
-# Windows (PowerShell)
-.\.venv\Scripts\Activate.ps1
-# macOS / Linux
-# source .venv/bin/activate
-
+.venv\Scripts\activate        # macOS/Linux: source .venv/bin/activate
 pip install -e ".[dev]"
 playwright install chromium
-```
 
-### 1. Scrape Catalog & Product Details (CSV + JSON + SQLite)
-
-```bash
-# Scrape first 3 pages (60 books) with concurrency=8
-scrape-books --pages 3 --concurrency 8 --out-dir output
-
-# Or scrape the entire 1,000-book catalog (50 pages)
-scrape-books --pages 50 --concurrency 10 --out-dir output
-```
-
-Outputs generated in `output/` (sample outputs included in [`samples/`](./samples)):
-- `books.csv` — UTF-8 CSV ready for Excel / Google Sheets
-- `books.json` — Clean, typed JSON array
-- `books.sqlite` — Idempotent SQLite table (`books` keyed by `upc`, safe to re-run on a schedule without duplicates)
-
-### 2. Benchmark Infinite Scroll vs. Hidden JSON API
-
-```bash
-# Scrapes all 10 pages both ways and writes quotes.csv / quotes.json
-compare-scroll --out-dir output
-```
-
-### 3. Sniff Hidden JSON APIs on Any JavaScript Page
-
-```bash
 sniff-api https://quotes.toscrape.com/scroll --scrolls 4 --out output/endpoints.json
+compare-scroll --out-dir output
+scrape-books --pages 2 --concurrency 8 --out-dir output
 ```
 
-Output format (illustrative; one entry per captured JSON response, the count depends on `--scrolls`):
-```text
-Discovered N JSON endpoint(s) on https://quotes.toscrape.com/scroll:
-  [GET 200] https://quotes.toscrape.com/api/quotes?page=1
-      keys=['has_next', 'page', 'quotes', ...] | list_items=10
+`scrape-books --pages 2` on 16 Nov 2026 printed:
+
+```
+Scraped 40 books across 2 page(s) (42 HTTP requests in 4.92s -> 8.1 items/s).
+Saved: output\books.csv, output\books.json, output\books.sqlite
 ```
 
----
+The SQLite table is keyed by `upc`, so a re-run updates rows instead of adding duplicates. Sample outputs are in [`samples/`](./samples). The full catalogue is `--pages 50` (1,000 books).
 
-## 🧪 Running Tests
+Tests: `pytest` (6 offline tests for the HTML parser, the API parser and the exporters).
 
-```bash
-pytest -v
-```
+## Code
 
----
+- `src/showcase/fetch.py`: shared fetcher with a semaphore, retries, exponential backoff and `Retry-After`.
+- `src/showcase/books.py`: list and detail page parser for books.toscrape.com.
+- `src/showcase/quotes_compare.py`: the scroll-vs-API comparison.
+- `src/showcase/sniffer.py`: the endpoint sniffer.
+- `src/showcase/export.py`: CSV, JSON and SQLite upsert.
 
-## 📁 Project Structure
+## Limits
 
-```text
-web-scraping-showcase/
-├── src/showcase/
-│   ├── fetch.py           # Fetcher: concurrency semaphore, retries, exponential backoff, Retry-After
-│   ├── books.py           # Async HTML + detail parser for books.toscrape.com
-│   ├── quotes_compare.py  # Hidden JSON API vs. Playwright infinite-scroll benchmark
-│   ├── sniffer.py         # Generic XHR/Fetch JSON API discovery tool
-│   └── export.py          # CSV, JSON, and idempotent SQLite upsert exporters
-├── samples/               # Sample CSV & JSON outputs (books.csv, books.json, quotes.csv, quotes.json)
-├── tests/                 # Offline unit tests for HTML parsers, API parsers, and exporters
-└── pyproject.toml         # console scripts: scrape-books, compare-scroll, sniff-api (each module's main())
-```
+- The sniffer only sees JSON the page requests while it loads and scrolls. Endpoints behind a click, a login or a WebSocket will not show up.
+- Rate limiting is per run (`--concurrency` plus backoff). Check a site's terms and robots.txt before pointing these tools at it.
 
-## 🔒 Data Ethics & Compliance
+## License
 
-- Limits load with bounded concurrency (`asyncio.Semaphore`, `--concurrency`), backs off on 429/5xx and honours `Retry-After` headers.
-- Collects only publicly available data; never harvests personal/private user data.
-
----
-
-**Author:** **Trung Thanh Tran** (*Trần Trung Thành*) · [GitHub `@Tthanh2k6`](https://github.com/Tthanh2k6) · [Upwork Profile](https://www.upwork.com/freelancers/~01ee7c2348cb4b62fe)
+MIT
